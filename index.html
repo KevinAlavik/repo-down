@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPA Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>IPA Downloader</h1>
+    <p>Scarlet, Scylla, and Altstore repos are supported</p>
+    <h2>Disclaimer</h2>
+    <p>To make it work with every repo, you need to go to this <a href="https://cors-anywhere.herokuapp.com">link</a>
+        and press <strong>Request temporary access to the demo server</strong></p>
+    <form id="repoForm" method="get">
+        <input type="text" placeholder="Repo URL" id="repo">
+        <button type="submit">Fetch</button>
+    </form>
+    <div id="ipa"></div>
+    <script src="https://cdn.jsdelivr.net/npm/repojs/src/index.js" crossorigin="anonymous"></script>
+    <script>
+        document.getElementById("repoForm").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent the default form submission
+            repoFetch();
+        });
+
+        function repoFetch() {
+            var out = document.getElementById('ipa');
+            out.innerHTML = '';
+            const proxyURL = 'https://cors-anywhere.herokuapp.com'; // CORS Anywhere proxy server URL
+
+            const repoURL = document.getElementById('repo').value;
+            const proxyRepoURL = `${proxyURL}/${repoURL}`;
+
+            fetch(proxyRepoURL)
+                .then(response => response.json())
+                .then(data => {
+                    const apps = data.apps || repojs.repo.getAllCategories(data, "META") || repojs.repo.getAllCategories(
+                        data, "Info");
+
+                    var downloadURLs = []; // Array to store the download URLs
+
+                    for (let i = 0; i < apps.length; i++) {
+                        const app = apps[i];
+                        const appElement = document.createElement('div');
+                        appElement.classList.add('app');
+
+                        const iconElement = document.createElement('img');
+                        iconElement.src = app.iconURL || app.icon || "https://aroundsketch.github.io/Apple-App-Icons/App%20Icon/Apple/AppStore/@PNG.png";
+                        iconElement.classList.add('appIcon');
+                        appElement.appendChild(iconElement);
+
+                        const appBodyElement = document.createElement('div');
+                        appBodyElement.classList.add('appBody');
+                        const appNameElement = document.createElement('p');
+                        appNameElement.classList.add('appName');
+                        appNameElement.textContent = app.version ? `${app.name} v${app.version}` : app.name;
+                        appBodyElement.appendChild(appNameElement);
+                        appElement.appendChild(appBodyElement);
+
+                        const installButton = document.createElement('button');
+                        installButton.textContent = '⬇';
+                        installButton.addEventListener('click', () => {
+                            window.open(app.downloadURL || app.down || app.ipa, '_parent');
+                        });
+                        downloadURLs.push(app.downloadURL || app.down || app.ipa);
+
+                        appElement.appendChild(installButton);
+
+                        out.appendChild(appElement);
+                    }
+
+                    const downloadAllButton = document.createElement('button');
+                    downloadAllButton.textContent = 'Download All ' + apps.length + ' Apps';
+                    downloadAllButton.classList.add('down'); // Add the 'down' class
+                    downloadAllButton.addEventListener('click', () => {
+                        downloadAllApps(downloadURLs);
+                    });
+                    out.appendChild(downloadAllButton);
+                })
+                .catch(error => {
+                    console.error('Error fetching URL:', error);
+                });
+        }
+
+        function downloadAllApps(urls) {
+            for (let i = 0; i < urls.length; i++) {
+                const link = document.createElement('a');
+                link.href = urls[i];
+                link.target = '_blank';
+                link.download = 'app' + (i + 1) + '.ipa'; // Set a default filename for each app
+                link.click();
+            }
+        }
+    </script>
+</body>
+
+</html>
